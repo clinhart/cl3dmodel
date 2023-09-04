@@ -25,7 +25,17 @@ class Edge;
 
 class Vertex
 {
-    Eigen::Vector3d coords;
+public:
+    Vertex()
+    : _coords(0.0, 0.0, 0.0)
+    {}
+
+    Vertex(const Eigen::Vector3d& coords)
+    : _coords(coords)
+    {}
+
+private:
+    Eigen::Vector3d _coords;
 };
 
 class QuarterEdgeRef
@@ -111,7 +121,7 @@ public:
     {}
 
 
-    Edge( Vertex* endPoint0, Vertex* endPoint1, std::shared_ptr<Curve> curve = std::shared_ptr<Curve>() )
+    Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
     : _curve(curve)
     , _endPoints{ endPoint0, endPoint1 }
     , _edgeCycles{ nullptr, nullptr }
@@ -134,6 +144,11 @@ private:
 
 class EdgeCycle
 {
+public:
+
+    EdgeCycle(const QuarterEdgeRef& oneEdge)
+    : _oneEdge(oneEdge)
+    {}
 
 private:
     //one quarter-edge of the edge cycle. The others can be found through navigation to neighbor and otherEndpoint alternately
@@ -169,17 +184,24 @@ private:
     double _d;  // so that the plane equation is p.dot(_normalVector) + _d == 0
 };
 
-template <typename EdgeCycleType = EdgeCycle>
+template <typename TEdgeCycleType = EdgeCycle>
 class Facet
 {
-    Facet( std::shared_ptr<Surface> surface )
+    typedef TEdgeCycleType EdgeCycleType;
+
+    Facet( const std::shared_ptr<Surface>& surface )
     : _surface(surface)
     {}
 
     virtual~ Facet() {}
 
+    EdgeCycleType *createEdgeCycle(const QuarterEdgeRef& oneEdge)
+    {
+        return &_edgeCycles.emplace_back(oneEdge);
+    }
+
 private:
-    std::vector<EdgeCycleType> _edgeCycles;
+    std::list<EdgeCycleType> _edgeCycles;
     std::shared_ptr<Surface> _surface;
 };
 
@@ -193,11 +215,28 @@ public:
     typedef TEdgeType EdgeType;
     typedef TFacetType FacetType;
 
+    VertexType* createVertex(const Eigen::Vector3d& coords) const
+    {
+        return &_vertices.emplace_back(coords);
+    }
+
+    EdgeType* createEdge(Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve> &curve = std::shared_ptr<Curve>()) const
+    {
+        return &_edges.emplace_back(endPoint0, endPoint1, curve);
+    }
+
+    FacetType* createFacet(const std::shared_ptr<Surface>& surface) const
+    {
+        return &_edges.emplace_back(surface);
+    }
+
     //operations
     //split edge at the given vertex in two edges
     //the edge should be of this volume
     //TODO// void SplitEdge(EdgeType* edge, VertexType* vertex);
 private:
+
+    //TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
     std::list<VertexType> _vertices;
     std::list<EdgeType> _edges;
     std::list<FacetType> _facets;
