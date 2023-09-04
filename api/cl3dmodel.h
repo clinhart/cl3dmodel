@@ -75,6 +75,7 @@ public:
     }
 
     inline const QuarterEdgeRef& neighbor() const;
+
     QuarterEdgeRef otherEnd() const
     {
         return QuarterEdgeRef(_edge, _endPointIdx ^ 1, _edgeCycleIdx);
@@ -84,6 +85,10 @@ public:
     {
         return QuarterEdgeRef(_edge, _endPointIdx, _edgeCycleIdx ^ 1);
     }
+
+    //linking
+    inline void connectToNeighbor(const QuarterEdgeRef& neighbor) const;
+    inline void disconnectFromNeighbor() const;
 
     //getters
     inline Vertex* endPoint() const;
@@ -98,6 +103,10 @@ public:
     
 
 private:
+
+    inline QuarterEdgeRef& neighborWritableRef() const;
+    inline QuarterEdgeRef* neighborWritablePtr() const;
+
     Edge* _edge;
     unsigned int _endPointIdx : 1;
     unsigned int _edgeCycleIdx : 1;
@@ -260,6 +269,48 @@ private:
 inline const QuarterEdgeRef& QuarterEdgeRef::neighbor() const
 {
     return _edge->_neighbors[_endPointIdx][_edgeCycleIdx];
+}
+
+inline QuarterEdgeRef& QuarterEdgeRef::neighborWritableRef() const
+{
+    return _edge->_neighbors[_endPointIdx][_edgeCycleIdx];
+}
+
+inline QuarterEdgeRef* QuarterEdgeRef::neighborWritablePtr() const
+{
+    return &(_edge->_neighbors[_endPointIdx][_edgeCycleIdx]);
+}
+
+inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) const
+{
+    assert( !this->isNull() );
+    assert( !neighbor.isNull() );
+    assert( this->edgeCycle() == neighbor.edgeCycle() );
+    QuarterEdgeRef* backLink = neighbor.neighborWritablePtr();
+    if (! backLink->isNull() ) {
+        backLink->disconnectFromNeighbor();
+    }
+    assert( backLink->isNull() );
+    QuarterEdgeRef* forwardLink = this->neighborWritablePtr();
+
+    *forwardLink = neighbor;
+    *backLink = *this;
+}
+
+inline void QuarterEdgeRef::disconnectFromNeighbor() const
+{
+    assert( !this->isNull() );
+    QuarterEdgeRef* forwardLink = this->neighborWritablePtr();
+    if (forwardLink->_edge) {
+        QuarterEdgeRef* backLink = forwardLink->neighborWritablePtr();
+
+        assert(*backLink == *this);
+        assert(forwardLink->_edge == backLink->neighbor()._edge);
+        assert(backLink->_edge == forwardLink->neighbor()._edge);
+
+        forwardLink->_edge = nullptr;
+        backLink->_edge = nullptr;
+    }
 }
 
 inline Vertex* QuarterEdgeRef::endPoint() const
