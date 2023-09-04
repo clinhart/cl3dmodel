@@ -14,6 +14,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 #include <memory>
 #include <vector>
+#include <unordered_set>
+#include <list>
 #include <eigen3/Eigen/Dense>
 
 namespace CL3DModel {
@@ -182,18 +184,36 @@ private:
 };
 
 
-template <typename VertexType = Vertex, typename EdgeType = Edge, typename FacetType = Facet<> >
+template <typename TVertexType = Vertex, typename TEdgeType = Edge, typename TFacetType = Facet<> >
 class Volume
 {
+public:
+
+    typedef TVertexType VertexType;
+    typedef TEdgeType EdgeType;
+    typedef TFacetType FacetType;
 
     //operations
     //split edge at the given vertex in two edges
     //the edge should be of this volume
     //TODO// void SplitEdge(EdgeType* edge, VertexType* vertex);
 private:
-    std::vector<VertexType> _vertices;
-    std::vector<EdgeType> _edges;
-    std::vector<FacetType> _facets;
+    std::list<VertexType> _vertices;
+    std::list<EdgeType> _edges;
+    std::list<FacetType> _facets;
+};
+
+template <typename TVolumeType = Volume<>>
+class Scene
+{
+public:
+    typedef TVolumeType VolumeType;
+    using VolumeType::VertexType;
+    using VolumeType::EdgeType;
+    using VolumeType::FacetType;
+
+private:
+    std::unordered_set<std::shared_ptr<VolumeType>> _volumes;
 };
 
 
