@@ -74,7 +74,20 @@ public:
         *this = neighbor();
     }
 
+    void moveToNeighborAtOtherEndPoint()
+    {
+        *this = neighborAtOtherEndPoint();
+    }
+
+    void moveToNeighborAtOtherSide()
+    {
+        *this = neighborAtOtherSide();
+    }
+
     inline const QuarterEdgeRef& neighbor() const;
+    inline const QuarterEdgeRef& neighborAtOtherEndPoint() const;
+    inline const QuarterEdgeRef& neighborAtOtherSide() const;
+
 
     QuarterEdgeRef otherEnd() const
     {
@@ -269,6 +282,16 @@ private:
 inline const QuarterEdgeRef& QuarterEdgeRef::neighbor() const
 {
     return _edge->_neighbors[_endPointIdx][_edgeCycleIdx];
+}
+
+inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherEndPoint() const
+{
+    return _edge->_neighbors[_endPointIdx ^ 1][_edgeCycleIdx];
+}
+
+inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherSide() const
+{
+    return _edge->_neighbors[_endPointIdx][_edgeCycleIdx ^ 1];
 }
 
 inline QuarterEdgeRef& QuarterEdgeRef::neighborWritableRef() const
