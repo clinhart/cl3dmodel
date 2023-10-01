@@ -22,107 +22,152 @@ namespace CL3DModel {
 
 class EdgeCycle;
 class Edge;
+class Vertex;
+class Facet;
 
-class Vertex
+template<typename TVertexType = Vertex, typename TEdgeType = Edge, typename TFacetType = Facet>
+struct ModelTypes
 {
-public:
-    Vertex()
-    : _coords(0.0, 0.0, 0.0)
-    {}
-
-    Vertex(const Eigen::Vector3d& coords)
-    : _coords(coords)
-    {}
-
-private:
-    Eigen::Vector3d _coords;
+	typedef TVertexType Vertex;
+	typedef TEdgeType Edge;
+	typedef TFacetType Facet;
 };
+
 
 class QuarterEdgeRef
 {
 public:
 
-    QuarterEdgeRef()
-    : _edge(nullptr)
-    , _endPointIdx(0)
-    , _edgeCycleIdx(0)
-    {}
+	QuarterEdgeRef()
+	: _edge(nullptr)
+	, _endPointIdx(0)
+	, _edgeCycleIdx(0)
+	{}
 
-    QuarterEdgeRef(Edge* edge, unsigned int endPointIdx, unsigned int edgeCycleIdx)
-    : _edge(edge)
-    , _endPointIdx(endPointIdx)
-    , _edgeCycleIdx(edgeCycleIdx)
-    {}
+	QuarterEdgeRef(Edge* edge, unsigned int endPointIdx, unsigned int edgeCycleIdx)
+	: _edge(edge)
+	, _endPointIdx(endPointIdx)
+	, _edgeCycleIdx(edgeCycleIdx)
+	{}
 
-    bool isNull() const { return ( _edge == nullptr ); }
+	bool isNull() const { return ( _edge == nullptr ); }
 
-    operator bool() const { return ( _edge != nullptr ); }
+	operator bool() const { return ( _edge != nullptr ); }
 
-    //navigation
-    void moveToOtherEnd()
-    {
-        _endPointIdx ^= 1;
-    }
+	//navigation
+	void moveToOtherEnd()
+	{
+		_endPointIdx ^= 1;
+	}
 
-    void moveToOtherSide()
-    {
-        _edgeCycleIdx ^= 1;
-    }    
+	void moveToOtherSide()
+	{
+		_edgeCycleIdx ^= 1;
+	}
 
-    void moveToNeighbor()
-    {
-        *this = neighbor();
-    }
+	void moveToNeighbor()
+	{
+		*this = neighbor();
+	}
 
-    void moveToNeighborAtOtherEndPoint()
-    {
-        *this = neighborAtOtherEndPoint();
-    }
+	void moveToNeighborAtOtherEndPoint()
+	{
+		*this = neighborAtOtherEndPoint();
+	}
 
-    void moveToNeighborAtOtherSide()
-    {
-        *this = neighborAtOtherSide();
-    }
+	void moveToNeighborAtOtherSide()
+	{
+		*this = neighborAtOtherSide();
+	}
 
-    inline const QuarterEdgeRef& neighbor() const;
-    inline const QuarterEdgeRef& neighborAtOtherEndPoint() const;
-    inline const QuarterEdgeRef& neighborAtOtherSide() const;
+	inline const QuarterEdgeRef& neighbor() const;
+	inline const QuarterEdgeRef& neighborAtOtherEndPoint() const;
+	inline const QuarterEdgeRef& neighborAtOtherSide() const;
 
 
-    QuarterEdgeRef otherEnd() const
-    {
-        return QuarterEdgeRef(_edge, _endPointIdx ^ 1, _edgeCycleIdx);
-    }
+	QuarterEdgeRef otherEnd() const
+	{
+		return QuarterEdgeRef(_edge, _endPointIdx ^ 1, _edgeCycleIdx);
+	}
 
-    QuarterEdgeRef otherSide() const
-    {
-        return QuarterEdgeRef(_edge, _endPointIdx, _edgeCycleIdx ^ 1);
-    }
+	QuarterEdgeRef otherSide() const
+	{
+		return QuarterEdgeRef(_edge, _endPointIdx, _edgeCycleIdx ^ 1);
+	}
 
-    //linking
-    inline void connectToNeighbor(const QuarterEdgeRef& neighbor) const;
-    inline void disconnectFromNeighbor() const;
+	//linking
+	inline void connectToNeighbor(const QuarterEdgeRef& neighbor) const;
+	inline void disconnectFromNeighbor() const;
 
-    //getters
-    inline Vertex* endPoint() const;
-    inline Vertex* otherEndPoint() const;
+	//getters
+	inline Vertex* endPoint() const;
+	inline Vertex* otherEndPoint() const;
 
-    inline EdgeCycle* edgeCycle() const;
-    inline EdgeCycle* otherSideEdgeCycle() const;
+	inline EdgeCycle* edgeCycle() const;
+	inline EdgeCycle* otherSideEdgeCycle() const;
 
-    Edge* edge() const { return _edge; }
+	Edge* edge() const { return _edge; }
 
-    //operations
-    
+	//comparisons
+	bool operator==( const QuarterEdgeRef& other ) const
+	{
+		return
+			( this->_edge == other._edge )
+			&&
+			( this->_endPointIdx == other._endPointIdx )
+			&&
+			( this->_edgeCycleIdx == other._edgeCycleIdx )
+		;
+	}
+
+	bool operator!=( const QuarterEdgeRef& other ) const
+	{
+		return !operator==(other);
+	}
+
+	//operations
+
 
 private:
+	friend class EdgeCycle;
 
-    inline QuarterEdgeRef& neighborWritableRef() const;
-    inline QuarterEdgeRef* neighborWritablePtr() const;
+	inline QuarterEdgeRef& neighborWritableRef() const;
+	inline QuarterEdgeRef* neighborWritablePtr() const;
 
-    Edge* _edge;
-    unsigned int _endPointIdx : 1;
-    unsigned int _edgeCycleIdx : 1;
+	inline void setEdgeCycle( EdgeCycle* edgeCycle );
+
+	Edge* _edge;
+	unsigned int _endPointIdx : 1;
+	unsigned int _edgeCycleIdx : 1;
+};
+
+class Vertex
+{
+public:
+	Vertex()
+	: _coords(0.0, 0.0, 0.0)
+	{}
+
+	Vertex(const Eigen::Vector3d& coords)
+	: _coords(coords)
+	{}
+
+	const Eigen::Vector3d& getCoords() const { return _coords; }
+	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
+
+	void indicateNewEdge( const QuarterEdgeRef& edge )
+	{
+		if (_oneEdge.isNull()) {
+			_oneEdge = edge;
+		}
+	}
+
+private:
+    //quarter-edge reference to one of the quarter-edges that is at this vertex.
+    //The others can be found through navigation to neighbor and otherEndpoint alternately
+    QuarterEdgeRef _oneEdge;
+
+    Eigen::Vector3d _coords;
 };
 
 //all curve objects are immutable, i.e. created by the constructor and then not changed
@@ -136,23 +181,30 @@ public:
 class Edge
 {
 public:
-    Edge()
-    : _curve()
-    , _endPoints{ nullptr, nullptr }
-    , _edgeCycles{ nullptr, nullptr }
-    {}
+	Edge()
+	: _curve()
+	, _endPoints{ nullptr, nullptr }
+	, _edgeCycles{ nullptr, nullptr }
+	{}
 
 
-    Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
-    : _curve(curve)
-    , _endPoints{ endPoint0, endPoint1 }
-    , _edgeCycles{ nullptr, nullptr }
-    {}
-   
-    operator bool() const { return _endPoints[0] && _endPoints[1]; }
-    bool isNull() const { return !this->operator bool(); }
+	Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
+	: _curve(curve)
+	, _endPoints{ endPoint0, endPoint1 }
+	, _edgeCycles{ nullptr, nullptr }
+	{
+		for( int endPointIdx = 0; endPointIdx < 2; endPointIdx++ ) {
+			_endPoints[endPointIdx]->indicateNewEdge(
+				QuarterEdgeRef(this, endPointIdx, 0)
+			);
+		}
+	}
 
+	operator bool() const { return _endPoints[0] && _endPoints[1]; }
+	bool isNull() const { return !this->operator bool(); }
 
+	//idx == 0: start-point, idx == 1: end-point
+	Vertex* getEndPoint(int idx) { return _endPoints[idx]; }
 
 private:
     friend class QuarterEdgeRef;
@@ -168,13 +220,27 @@ class EdgeCycle
 {
 public:
 
-    EdgeCycle(const QuarterEdgeRef& oneEdge)
-    : _oneEdge(oneEdge)
-    {}
+	EdgeCycle(const QuarterEdgeRef& oneEdge, Facet* facet)
+	: _oneEdge(oneEdge)
+	, _facet(facet)
+	{
+		//set the pointers from edges to this edgeCycle
+		if (oneEdge) {
+			QuarterEdgeRef qedge = oneEdge;
+			do {
+				qedge.setEdgeCycle(this);
+				qedge.moveToNeighborAtOtherEndPoint();
+			} while( qedge && ( qedge != oneEdge ) );
+		}
+	}
+
+	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
+	Facet * getFacet() const { return _facet; }
 
 private:
-    //one quarter-edge of the edge cycle. The others can be found through navigation to neighbor and otherEndpoint alternately
-    QuarterEdgeRef _oneEdge;
+	//one quarter-edge of the edge cycle. The others can be found through navigation to neighbor and otherEndpoint alternately
+	QuarterEdgeRef _oneEdge;
+	Facet *_facet;
 };
 
 //all surface objects are immutable, i.e. created by the constructor and then not changed
@@ -206,62 +272,62 @@ private:
     double _d;  // so that the plane equation is p.dot(_normalVector) + _d == 0
 };
 
-template <typename TEdgeCycleType = EdgeCycle>
 class Facet
 {
-    typedef TEdgeCycleType EdgeCycleType;
-
     Facet( const std::shared_ptr<Surface>& surface )
     : _surface(surface)
     {}
 
     virtual~ Facet() {}
 
-    EdgeCycleType *createEdgeCycle(const QuarterEdgeRef& oneEdge)
+    EdgeCycle *createEdgeCycle(const QuarterEdgeRef& oneEdge)
     {
-        return &_edgeCycles.emplace_back(oneEdge);
+        return &_edgeCycles.emplace_back(oneEdge, this);
     }
 
 private:
-    std::list<EdgeCycleType> _edgeCycles;
+    std::list<EdgeCycle> _edgeCycles;
     std::shared_ptr<Surface> _surface;
 };
 
 
-template <typename TVertexType = Vertex, typename TEdgeType = Edge, typename TFacetType = Facet<> >
+template <typename TModelTypes = ModelTypes<> >
 class Volume
 {
 public:
 
-    typedef TVertexType VertexType;
-    typedef TEdgeType EdgeType;
-    typedef TFacetType FacetType;
+	typedef typename TModelTypes::Vertex VertexType;
+	typedef typename TModelTypes::Edge EdgeType;
+	typedef typename TModelTypes::Facet FacetType;
 
-    VertexType* createVertex(const Eigen::Vector3d& coords) const
-    {
-        return &_vertices.emplace_back(coords);
-    }
+	VertexType* createVertex(const Eigen::Vector3d& coords) const
+	{
+		return &_vertices.emplace_back(coords);
+	}
 
-    EdgeType* createEdge(Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve> &curve = std::shared_ptr<Curve>()) const
-    {
-        return &_edges.emplace_back(endPoint0, endPoint1, curve);
-    }
+	EdgeType* createEdge(
+		Vertex* endPoint0, Vertex* endPoint1,
+		const std::shared_ptr<Curve> &curve = std::shared_ptr<Curve>()
+	) const
+	{
+		return &_edges.emplace_back(endPoint0, endPoint1, curve);
+	}
 
-    FacetType* createFacet(const std::shared_ptr<Surface>& surface) const
-    {
-        return &_edges.emplace_back(surface);
-    }
+	FacetType* createFacet(const std::shared_ptr<Surface>& surface) const
+	{
+		return &_edges.emplace_back(surface);
+	}
 
-    //operations
-    //split edge at the given vertex in two edges
-    //the edge should be of this volume
-    //TODO// void SplitEdge(EdgeType* edge, VertexType* vertex);
+	//operations
+	//split edge at the given vertex in two edges
+	//the edge should be of this volume
+	//TODO// void SplitEdge(EdgeType* edge, VertexType* vertex);
 private:
 
-    //TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
-    std::list<VertexType> _vertices;
-    std::list<EdgeType> _edges;
-    std::list<FacetType> _facets;
+	//TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
+	std::list<VertexType> _vertices;
+	std::list<EdgeType> _edges;
+	std::list<FacetType> _facets;
 };
 
 template <typename TVolumeType = Volume<>>
@@ -355,6 +421,12 @@ inline EdgeCycle* QuarterEdgeRef::otherSideEdgeCycle() const
 {
     return _edge->_edgeCycles[_edgeCycleIdx ^ 1];
 }
+
+inline void QuarterEdgeRef::setEdgeCycle( EdgeCycle* edgeCycle )
+{
+	_edge->_edgeCycles[_edgeCycleIdx] = edgeCycle;
+}
+
 
 } //end namespace CL3DModel
 
