@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.9)
 project(cl3dmodel VERSION 0.0.1 DESCRIPTION "3D model using a flavor of DCEL with quarter-edge-references")
 include(GNUInstallDirs)
 add_library(cl3dmodel src/cl3dmodel.cpp)
+set_property(TARGET cl3dmodel PROPERTY CXX_STANDARD 17)
 set_target_properties(cl3dmodel PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
