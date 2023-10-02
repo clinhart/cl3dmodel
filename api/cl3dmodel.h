@@ -157,6 +157,8 @@ public:
 	: _coords(coords)
 	{}
 
+	virtual ~Vertex() {}
+
 	const Eigen::Vector3d& getCoords() const { return _coords; }
 	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
 
@@ -192,6 +194,7 @@ public:
 	, _edgeCycles{ nullptr, nullptr }
 	{}
 
+	virtual ~Edge() {}
 
 	Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
 	: _curve(curve)
@@ -239,6 +242,8 @@ public:
 		}
 	}
 
+	virtual ~EdgeCycle() {}
+
 	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
 	Facet * getFacet() const { return _facet; }
 
@@ -279,11 +284,12 @@ private:
 
 class Facet
 {
+public:
     Facet( const std::shared_ptr<Surface>& surface )
     : _surface(surface)
     {}
 
-    virtual~ Facet() {}
+    virtual ~Facet() {}
 
     EdgeCycle *createEdgeCycle(const QuarterEdgeRef& oneEdge)
     {
@@ -340,9 +346,9 @@ class Scene
 {
 public:
     typedef TVolumeType VolumeType;
-    using VolumeType::VertexType;
-    using VolumeType::EdgeType;
-    using VolumeType::FacetType;
+    typedef typename VolumeType::VertexType VertexType;
+	typedef typename VolumeType::EdgeType EdgeType;
+    typedef typename VolumeType::FacetType FacetType;
 
 private:
     std::unordered_set<std::shared_ptr<VolumeType>> _volumes;
