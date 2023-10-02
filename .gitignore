@@ -6,3 +6,4 @@ Makefile
 *.a
 *.so
 *.so.*
+.vs
