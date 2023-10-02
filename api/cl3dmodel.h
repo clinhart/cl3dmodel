@@ -21,7 +21,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #include <vector>
 #include <unordered_set>
 #include <list>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace CL3DModel {
 
