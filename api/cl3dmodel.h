@@ -157,6 +157,10 @@ public:
 	: _coords(coords)
 	{}
 
+	Vertex(Eigen::Vector3d&& coords)
+		: _coords(std::move(coords))
+	{}
+
 	virtual ~Vertex() {}
 
 	const Eigen::Vector3d& getCoords() const { return _coords; }
@@ -311,22 +315,22 @@ public:
 	typedef typename TModelTypes::Edge EdgeType;
 	typedef typename TModelTypes::Facet FacetType;
 
-	VertexType* createVertex(const Eigen::Vector3d& coords)
+	template<typename... ArgTypes>
+	VertexType* createVertex(ArgTypes... args)
 	{
-		return &_vertices.emplace_back(coords);
+		return &_vertices.emplace_back(args...);
 	}
 
-	EdgeType* createEdge(
-		Vertex* endPoint0, Vertex* endPoint1,
-		const std::shared_ptr<Curve> &curve = std::shared_ptr<Curve>()
-	) const
+	template<typename... ArgTypes>
+	EdgeType* createEdge(ArgTypes... args)
 	{
-		return &_edges.emplace_back(endPoint0, endPoint1, curve);
+		return &_edges.emplace_back(args...);
 	}
 
-	FacetType* createFacet(const std::shared_ptr<Surface>& surface) const
+	template<typename... ArgTypes>
+	FacetType* createFacet(ArgTypes... args)
 	{
-		return &_edges.emplace_back(surface);
+		return &_edges.emplace_back(args...);
 	}
 
 	//operations
@@ -355,7 +359,7 @@ public:
 	template<typename... ArgTypes>
 	VolumePointerType createVolume( ArgTypes... args )
 	{
-		return std::make_shared<VolumeType>(std::forward(args...));
+		return std::make_shared<VolumeType>(args...);
 	}
 
 private:
