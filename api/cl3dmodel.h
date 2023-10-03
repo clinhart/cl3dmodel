@@ -311,7 +311,7 @@ public:
 	typedef typename TModelTypes::Edge EdgeType;
 	typedef typename TModelTypes::Facet FacetType;
 
-	VertexType* createVertex(const Eigen::Vector3d& coords) const
+	VertexType* createVertex(const Eigen::Vector3d& coords)
 	{
 		return &_vertices.emplace_back(coords);
 	}
@@ -349,6 +349,14 @@ public:
     typedef typename VolumeType::VertexType VertexType;
 	typedef typename VolumeType::EdgeType EdgeType;
     typedef typename VolumeType::FacetType FacetType;
+
+	typedef std::shared_ptr<VolumeType> VolumePointerType;
+
+	template<typename... ArgTypes>
+	VolumePointerType createVolume( ArgTypes... args )
+	{
+		return std::make_shared<VolumeType>(std::forward(args...));
+	}
 
 private:
     std::unordered_set<std::shared_ptr<VolumeType>> _volumes;
