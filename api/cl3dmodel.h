@@ -216,7 +216,9 @@ public:
 	bool isNull() const { return !this->operator bool(); }
 
 	//idx == 0: start-point, idx == 1: end-point
-	Vertex* getEndPoint(int idx) { return _endPoints[idx]; }
+	Vertex* getEndPoint(int idx) const { return _endPoints[idx]; }
+
+	EdgeCycle* getEdgeCycle(int idx) const { return _edgeCycles[idx]; }
 
 private:
     friend class QuarterEdgeRef;
