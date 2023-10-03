@@ -273,7 +273,11 @@ class Plane : public Surface
 
 public:
     //so that the plane equation is p.dot(normalVector) + d == 0
-    Plane( const Eigen::Vector3d& normalVector, double d );
+	Plane(const Eigen::Vector3d& normalVector, double d)
+		: _normalVector(normalVector)
+		, _d(d)
+	{
+	}
 
     //distance from plane in units of length of _normalVector, sign indicates which side of the plane
     virtual double signedDistance( const Eigen::Vector3d& point )
@@ -330,7 +334,7 @@ public:
 	template<typename... ArgTypes>
 	FacetType* createFacet(ArgTypes... args)
 	{
-		return &_edges.emplace_back(args...);
+		return &_facets.emplace_back(args...);
 	}
 
 	//operations
