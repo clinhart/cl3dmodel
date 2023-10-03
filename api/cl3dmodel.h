@@ -321,6 +321,11 @@ public:
 	typedef typename TModelTypes::Edge EdgeType;
 	typedef typename TModelTypes::Facet FacetType;
 
+
+	typedef typename std::list<VertexType>::const_iterator VertexIterator;
+	typedef typename std::list<EdgeType>::const_iterator EdgeIterator;
+	typedef typename std::list<FacetType>::const_iterator FacetIterator;
+
 	template<typename... ArgTypes>
 	VertexType* createVertex(ArgTypes... args)
 	{
@@ -338,6 +343,16 @@ public:
 	{
 		return &_facets.emplace_back(args...);
 	}
+
+	//iterate over content
+	VertexIterator beginVertices() const { return _vertices.begin(); }
+	VertexIterator endVertices() const { return _vertices.end(); }
+
+	EdgeIterator beginEdges() const { return _edges.begin(); }
+	EdgeIterator endEdges() const { return _edges.end(); }
+
+	FacetIterator beginFacets() const { return _facets.begin(); }
+	FacetIterator endFacets() const { return _facets.end(); }
 
 	//operations
 	//split edge at the given vertex in two edges
