@@ -394,7 +394,9 @@ public:
 	template<typename... ArgTypes>
 	VolumePointerType createVolume( ArgTypes... args )
 	{
-		return std::make_shared<VolumeType>(args...);
+		VolumePointerType volume = std::make_shared<VolumeType>(args...);
+		_volumes.insert(volume);
+		return volume;
 	}
 
 	//iterate over volumes
