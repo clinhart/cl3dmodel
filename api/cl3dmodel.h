@@ -354,6 +354,11 @@ public:
 	FacetIterator beginFacets() const { return _facets.begin(); }
 	FacetIterator endFacets() const { return _facets.end(); }
 
+	//get quantities
+	size_t getVertexCount() const { return _vertices.size(); }
+	size_t getEdgeCount() const { return _edges.size(); }
+	size_t getFacetCount() const { return _facets.size(); }
+
 	//operations
 	//split edge at the given vertex in two edges
 	//the edge should be of this volume
