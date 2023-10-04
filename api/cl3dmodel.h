@@ -295,6 +295,8 @@ private:
 class Facet
 {
 public:
+	typedef typename std::list<EdgeCycle>::const_iterator EdgeCycleIterator;
+
     Facet( const std::shared_ptr<Surface>& surface )
     : _surface(surface)
     {}
@@ -305,6 +307,11 @@ public:
     {
         return &_edgeCycles.emplace_back(oneEdge, this);
     }
+
+	EdgeCycleIterator begin() const { return _edgeCycles.begin(); }
+	EdgeCycleIterator end() const { return _edgeCycles.end(); }
+
+	size_t getEdgeCycleCount() const { return _edgeCycles.size(); }
 
 private:
     std::list<EdgeCycle> _edgeCycles;
