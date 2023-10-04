@@ -216,9 +216,9 @@ public:
 	bool isNull() const { return !this->operator bool(); }
 
 	//idx == 0: start-point, idx == 1: end-point
-	Vertex* getEndPoint(int idx) const { return _endPoints[idx]; }
+	Vertex* getEndPoint(int idx) const { assert( (idx == 0) || (idx == 1) ); return _endPoints[idx]; }
 
-	EdgeCycle* getEdgeCycle(int idx) const { return _edgeCycles[idx]; }
+	EdgeCycle* getEdgeCycle(int idx) const { assert((idx == 0) || (idx == 1)); return _edgeCycles[idx]; }
 
 private:
     friend class QuarterEdgeRef;
@@ -433,6 +433,7 @@ inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) co
     assert( !this->isNull() );
     assert( !neighbor.isNull() );
     assert( this->edgeCycle() == neighbor.edgeCycle() );
+	assert( this->endPoint() == neighbor.endPoint() );
     QuarterEdgeRef* backLink = neighbor.neighborWritablePtr();
     if (! backLink->isNull() ) {
         backLink->disconnectFromNeighbor();
