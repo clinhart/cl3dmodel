@@ -382,14 +382,23 @@ public:
 
 	typedef std::shared_ptr<VolumeType> VolumePointerType;
 
+	typedef typename std::unordered_set<VolumePointerType>::const_iterator const_iterator;
+
 	template<typename... ArgTypes>
 	VolumePointerType createVolume( ArgTypes... args )
 	{
 		return std::make_shared<VolumeType>(args...);
 	}
 
+	//iterate over volumes
+	const_iterator begin() const { return _volumes.begin(); }
+	const_iterator end() const { return _volumes.end(); }
+
+	//get quantities
+	size_t getVolumesCount() const { return _volumes.size(); }
+
 private:
-    std::unordered_set<std::shared_ptr<VolumeType>> _volumes;
+    std::unordered_set<VolumePointerType> _volumes;
 };
 
 
