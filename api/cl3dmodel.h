@@ -313,6 +313,8 @@ public:
 
 	size_t getEdgeCycleCount() const { return _edgeCycles.size(); }
 
+	const std::shared_ptr<Surface>& getSurface() const { return _surface; }
+
 private:
     std::list<EdgeCycle> _edgeCycles;
     std::shared_ptr<Surface> _surface;
