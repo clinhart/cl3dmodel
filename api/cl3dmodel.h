@@ -287,6 +287,9 @@ public:
         return point.dot(_normalVector) + _d;
     }
 
+	const Eigen::Vector3d& getNormalVector() const { return _normalVector; }
+	double getD() const { return _d; }
+
 private:
     Eigen::Vector3d _normalVector; //for signedDistance to yield the actual distance, _normalVector has to have length 1
     double _d;  // so that the plane equation is p.dot(_normalVector) + _d == 0
