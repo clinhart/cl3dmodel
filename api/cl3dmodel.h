@@ -45,13 +45,13 @@ public:
 
 	QuarterEdgeRef()
 	: _edge(nullptr)
-	, _endPointIdx(0)
+	, _vertexIdx(0)
 	, _edgeCycleIdx(0)
 	{}
 
-	QuarterEdgeRef(Edge* edge, unsigned int endPointIdx, unsigned int edgeCycleIdx)
+	QuarterEdgeRef(Edge* edge, unsigned int vertexIdx, unsigned int edgeCycleIdx)
 	: _edge(edge)
-	, _endPointIdx(endPointIdx)
+	, _vertexIdx(vertexIdx)
 	, _edgeCycleIdx(edgeCycleIdx)
 	{}
 
@@ -62,7 +62,7 @@ public:
 	//navigation
 	void moveToOtherEnd()
 	{
-		_endPointIdx ^= 1;
+		_vertexIdx ^= 1;
 	}
 
 	void moveToOtherSide()
@@ -89,15 +89,14 @@ public:
 	inline const QuarterEdgeRef& neighborAtOtherEndPoint() const;
 	inline const QuarterEdgeRef& neighborAtOtherSide() const;
 
-
 	QuarterEdgeRef otherEnd() const
 	{
-		return QuarterEdgeRef(_edge, _endPointIdx ^ 1, _edgeCycleIdx);
+		return QuarterEdgeRef(_edge, _vertexIdx ^ 1, _edgeCycleIdx);
 	}
 
 	QuarterEdgeRef otherSide() const
 	{
-		return QuarterEdgeRef(_edge, _endPointIdx, _edgeCycleIdx ^ 1);
+		return QuarterEdgeRef(_edge, _vertexIdx, _edgeCycleIdx ^ 1);
 	}
 
 	//linking
@@ -105,11 +104,11 @@ public:
 	inline void disconnectFromNeighbor() const;
 
 	//getters
-	inline Vertex* endPoint() const;
-	inline Vertex* otherEndPoint() const;
+	inline Vertex* getVertex() const;
+	inline Vertex* getOtherVertex() const;
 
-	inline EdgeCycle* edgeCycle() const;
-	inline EdgeCycle* otherSideEdgeCycle() const;
+	inline EdgeCycle* getEdgeCycle() const;
+	inline EdgeCycle* getOtherSideEdgeCycle() const;
 
 	Edge* edge() const { return _edge; }
 
@@ -119,7 +118,7 @@ public:
 		return
 			( this->_edge == other._edge )
 			&&
-			( this->_endPointIdx == other._endPointIdx )
+			( this->_vertexIdx == other._vertexIdx )
 			&&
 			( this->_edgeCycleIdx == other._edgeCycleIdx )
 		;
@@ -133,6 +132,13 @@ public:
 	//operations
 
 
+	//deprecated
+	inline Vertex* endPoint() const { return getVertex(); }
+	inline Vertex* otherEndPoint() const { return getOtherVertex(); };
+
+	inline EdgeCycle* edgeCycle() const { return getEdgeCycle(); }
+	inline EdgeCycle* otherSideEdgeCycle() const { return getOtherSideEdgeCycle();  }
+
 private:
 	friend class EdgeCycle;
 
@@ -142,7 +148,7 @@ private:
 	inline void setEdgeCycle( EdgeCycle* edgeCycle );
 
 	Edge* _edge;
-	unsigned int _endPointIdx : 1;
+	unsigned int _vertexIdx : 1;
 	unsigned int _edgeCycleIdx : 1;
 };
 
@@ -150,7 +156,7 @@ class Vertex
 {
 public:
 	Vertex()
-	: _coords(0.0, 0.0, 0.0)
+		: _coords{ 0.0, 0.0, 0.0 }
 	{}
 
 	Vertex(const Eigen::Vector3d& coords)
@@ -194,7 +200,7 @@ class Edge
 public:
 	Edge()
 	: _curve()
-	, _endPoints{ nullptr, nullptr }
+	, _vertices{ nullptr, nullptr }
 	, _edgeCycles{ nullptr, nullptr }
 	{}
 
@@ -202,32 +208,36 @@ public:
 
 	Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
 	: _curve(curve)
-	, _endPoints{ endPoint0, endPoint1 }
+	, _vertices{ endPoint0, endPoint1 }
 	, _edgeCycles{ nullptr, nullptr }
 	{
-		for( int endPointIdx = 0; endPointIdx < 2; endPointIdx++ ) {
-			_endPoints[endPointIdx]->indicateNewEdge(
-				QuarterEdgeRef(this, endPointIdx, 0)
+		for( int vertexIdx = 0; vertexIdx < 2; vertexIdx++ ) {
+			_vertices[vertexIdx]->indicateNewEdge(
+				QuarterEdgeRef(this, vertexIdx, 0)
 			);
 		}
 	}
 
-	operator bool() const { return _endPoints[0] && _endPoints[1]; }
+	operator bool() const { return _vertices[0] && _vertices[1]; }
 	bool isNull() const { return !this->operator bool(); }
 
 	//idx == 0: start-point, idx == 1: end-point
-	Vertex* getEndPoint(int idx) const { assert( (idx == 0) || (idx == 1) ); return _endPoints[idx]; }
+	Vertex* getVertex(int idx) const { assert( (idx == 0) || (idx == 1) ); return _vertices[idx]; }
 
 	EdgeCycle* getEdgeCycle(int idx) const { assert((idx == 0) || (idx == 1)); return _edgeCycles[idx]; }
+
+
+	//deprecated
+	Vertex* getEndPoint(int idx) const { return getVertex(idx); }
 
 private:
     friend class QuarterEdgeRef;
 
     std::shared_ptr<Curve> _curve; //if _curve is null, then the edge is a straight line
-    Vertex* _endPoints[2];
+    Vertex* _vertices[2];
     EdgeCycle* _edgeCycles[2];
 
-    QuarterEdgeRef _neighbors[2][2]; //neighbors[endPointIdx][edgeCycleIdx]
+    QuarterEdgeRef _neighbors[2][2]; //neighbors[vertexIdx][edgeCycleIdx]
 };
 
 class EdgeCycle
@@ -298,7 +308,8 @@ private:
 class Facet
 {
 public:
-	typedef typename std::list<EdgeCycle>::const_iterator EdgeCycleIterator;
+	typedef typename std::list<EdgeCycle>::iterator EdgeCycleIterator;
+	typedef typename std::list<EdgeCycle>::const_iterator ConstEdgeCycleIterator;
 
     Facet( const std::shared_ptr<Surface>& surface )
     : _surface(surface)
@@ -311,8 +322,11 @@ public:
         return &_edgeCycles.emplace_back(oneEdge, this);
     }
 
-	EdgeCycleIterator begin() const { return _edgeCycles.begin(); }
-	EdgeCycleIterator end() const { return _edgeCycles.end(); }
+	EdgeCycleIterator begin() { return _edgeCycles.begin(); }
+	EdgeCycleIterator end() { return _edgeCycles.end(); }
+
+	ConstEdgeCycleIterator cbegin() const { return _edgeCycles.cbegin(); }
+	ConstEdgeCycleIterator cend() const { return _edgeCycles.cend(); }
 
 	size_t getEdgeCycleCount() const { return _edgeCycles.size(); }
 
@@ -334,9 +348,13 @@ public:
 	typedef typename TModelTypes::Facet FacetType;
 
 
-	typedef typename std::list<VertexType>::const_iterator VertexIterator;
-	typedef typename std::list<EdgeType>::const_iterator EdgeIterator;
-	typedef typename std::list<FacetType>::const_iterator FacetIterator;
+	typedef typename std::list<VertexType>::iterator VertexIterator;
+	typedef typename std::list<EdgeType>::iterator EdgeIterator;
+	typedef typename std::list<FacetType>::iterator FacetIterator;
+
+	typedef typename std::list<VertexType>::const_iterator ConstVertexIterator;
+	typedef typename std::list<EdgeType>::const_iterator ConstEdgeIterator;
+	typedef typename std::list<FacetType>::const_iterator ConstFacetIterator;
 
 	template<typename... ArgTypes>
 	VertexType* createVertex(ArgTypes... args)
@@ -357,14 +375,23 @@ public:
 	}
 
 	//iterate over content
-	VertexIterator beginVertices() const { return _vertices.begin(); }
-	VertexIterator endVertices() const { return _vertices.end(); }
+	ConstVertexIterator cbeginVertices() const { return _vertices.cbegin(); }
+	ConstVertexIterator cendVertices() const { return _vertices.cend(); }
 
-	EdgeIterator beginEdges() const { return _edges.begin(); }
-	EdgeIterator endEdges() const { return _edges.end(); }
+	ConstEdgeIterator cbeginEdges() const { return _edges.cbegin(); }
+	ConstEdgeIterator cendEdges() const { return _edges.cend(); }
 
-	FacetIterator beginFacets() const { return _facets.begin(); }
-	FacetIterator endFacets() const { return _facets.end(); }
+	ConstFacetIterator cbeginFacets() const { return _facets.cbegin(); }
+	ConstFacetIterator cendFacets() const { return _facets.cend(); }
+
+	VertexIterator beginVertices() { return _vertices.begin(); }
+	VertexIterator endVertices() { return _vertices.end(); }
+
+	EdgeIterator beginEdges() { return _edges.begin(); }
+	EdgeIterator endEdges() { return _edges.end(); }
+
+	FacetIterator beginFacets() { return _facets.begin(); }
+	FacetIterator endFacets() { return _facets.end(); }
 
 	//get quantities
 	size_t getVertexCount() const { return _vertices.size(); }
@@ -419,27 +446,27 @@ private:
 //inline functions outside of class bodies
 inline const QuarterEdgeRef& QuarterEdgeRef::neighbor() const
 {
-    return _edge->_neighbors[_endPointIdx][_edgeCycleIdx];
+    return _edge->_neighbors[_vertexIdx][_edgeCycleIdx];
 }
 
 inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherEndPoint() const
 {
-    return _edge->_neighbors[_endPointIdx ^ 1][_edgeCycleIdx];
+    return _edge->_neighbors[_vertexIdx ^ 1][_edgeCycleIdx];
 }
 
 inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherSide() const
 {
-    return _edge->_neighbors[_endPointIdx][_edgeCycleIdx ^ 1];
+    return _edge->_neighbors[_vertexIdx][_edgeCycleIdx ^ 1];
 }
 
 inline QuarterEdgeRef& QuarterEdgeRef::neighborWritableRef() const
 {
-    return _edge->_neighbors[_endPointIdx][_edgeCycleIdx];
+    return _edge->_neighbors[_vertexIdx][_edgeCycleIdx];
 }
 
 inline QuarterEdgeRef* QuarterEdgeRef::neighborWritablePtr() const
 {
-    return &(_edge->_neighbors[_endPointIdx][_edgeCycleIdx]);
+    return &(_edge->_neighbors[_vertexIdx][_edgeCycleIdx]);
 }
 
 inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) const
@@ -475,22 +502,22 @@ inline void QuarterEdgeRef::disconnectFromNeighbor() const
     }
 }
 
-inline Vertex* QuarterEdgeRef::endPoint() const
+inline Vertex* QuarterEdgeRef::getVertex() const
 {
-    return _edge->_endPoints[_endPointIdx];
+    return _edge->_vertices[_vertexIdx];
 }
 
-inline Vertex* QuarterEdgeRef::otherEndPoint() const
+inline Vertex* QuarterEdgeRef::getOtherVertex() const
 {
-    return _edge->_endPoints[_endPointIdx ^ 1];
+    return _edge->_vertices[_vertexIdx ^ 1];
 }
 
-inline EdgeCycle* QuarterEdgeRef::edgeCycle() const
+inline EdgeCycle* QuarterEdgeRef::getEdgeCycle() const
 {
     return _edge->_edgeCycles[_edgeCycleIdx];
 }
 
-inline EdgeCycle* QuarterEdgeRef::otherSideEdgeCycle() const
+inline EdgeCycle* QuarterEdgeRef::getOtherSideEdgeCycle() const
 {
     return _edge->_edgeCycles[_edgeCycleIdx ^ 1];
 }
