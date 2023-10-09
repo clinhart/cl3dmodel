@@ -328,6 +328,9 @@ public:
 	ConstEdgeCycleIterator cbegin() const { return _edgeCycles.cbegin(); }
 	ConstEdgeCycleIterator cend() const { return _edgeCycles.cend(); }
 
+	ConstEdgeCycleIterator begin() const { return _edgeCycles.cbegin(); }
+	ConstEdgeCycleIterator end() const { return _edgeCycles.cend(); }
+
 	size_t getEdgeCycleCount() const { return _edgeCycles.size(); }
 
 	const std::shared_ptr<Surface>& getSurface() const { return _surface; }
@@ -392,6 +395,15 @@ public:
 
 	FacetIterator beginFacets() { return _facets.begin(); }
 	FacetIterator endFacets() { return _facets.end(); }
+
+	ConstVertexIterator beginVertices() const { return _vertices.cbegin(); }
+	ConstVertexIterator endVertices() const { return _vertices.cend(); }
+
+	ConstEdgeIterator beginEdges() const { return _edges.cbegin(); }
+	ConstEdgeIterator endEdges() const { return _edges.cend(); }
+
+	ConstFacetIterator beginFacets() const { return _facets.cbegin(); }
+	ConstFacetIterator endFacets() const { return _facets.cend(); }
 
 	//get quantities
 	size_t getVertexCount() const { return _vertices.size(); }
