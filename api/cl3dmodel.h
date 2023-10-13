@@ -263,6 +263,11 @@ public:
 	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
 	Facet * getFacet() const { return _facet; }
 
+	void flipOrientation()
+	{
+		_oneEdge.moveToOtherEnd();
+	}
+
 private:
 	//one quarter-edge of the edge cycle. The others can be found through navigation to neighbor and otherEndpoint alternately
 	QuarterEdgeRef _oneEdge;
