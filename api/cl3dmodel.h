@@ -110,7 +110,7 @@ public:
 	inline EdgeCycle* getEdgeCycle() const;
 	inline EdgeCycle* getOtherSideEdgeCycle() const;
 
-	Edge* edge() const { return _edge; }
+	Edge* getEdge() const { return _edge; }
 
 	//comparisons
 	bool operator==( const QuarterEdgeRef& other ) const
@@ -131,13 +131,17 @@ public:
 
 	//operations
 
-
 	//deprecated
-	inline Vertex* endPoint() const { return getVertex(); }
-	inline Vertex* otherEndPoint() const { return getOtherVertex(); };
+	//use getVertex or getOtherVertex instead
+	[[deprecated]] inline Vertex* endPoint() const { return getVertex(); }
+	[[deprecated]] inline Vertex* otherEndPoint() const { return getOtherVertex(); };
 
-	inline EdgeCycle* edgeCycle() const { return getEdgeCycle(); }
-	inline EdgeCycle* otherSideEdgeCycle() const { return getOtherSideEdgeCycle();  }
+	//use getEdgeCycle or getOtherSideEdgeCycle instead
+	[[deprecated]] inline EdgeCycle* edgeCycle() const { return getEdgeCycle(); }
+	[[deprecated]] inline EdgeCycle* otherSideEdgeCycle() const { return getOtherSideEdgeCycle();  }
+
+	//use getEdge instead
+	[[deprecated]] Edge* edge() const { return _edge; }
 
 private:
 	friend class EdgeCycle;
@@ -199,19 +203,19 @@ class Edge
 {
 public:
 	Edge()
-	: _curve()
-	, _vertices{ nullptr, nullptr }
-	, _edgeCycles{ nullptr, nullptr }
+		: _curve()
+		, _vertices{ nullptr, nullptr }
+		, _edgeCycles{ nullptr, nullptr }
 	{}
 
 	virtual ~Edge() {}
 
-	Edge( Vertex* endPoint0, Vertex* endPoint1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>() )
-	: _curve(curve)
-	, _vertices{ endPoint0, endPoint1 }
-	, _edgeCycles{ nullptr, nullptr }
+	Edge(Vertex* vertex0, Vertex* vertex1, const std::shared_ptr<Curve>& curve = std::shared_ptr<Curve>())
+		: _curve(curve)
+		, _vertices{ vertex0, vertex1 }
+		, _edgeCycles{ nullptr, nullptr }
 	{
-		for( int vertexIdx = 0; vertexIdx < 2; vertexIdx++ ) {
+		for (int vertexIdx = 0; vertexIdx < 2; vertexIdx++) {
 			_vertices[vertexIdx]->indicateNewEdge(
 				QuarterEdgeRef(this, vertexIdx, 0)
 			);
@@ -222,17 +226,31 @@ public:
 	bool isNull() const { return !this->operator bool(); }
 
 	//idx == 0: start-point, idx == 1: end-point
-	Vertex* getVertex(int idx) const { assert( (idx == 0) || (idx == 1) ); return _vertices[idx]; }
+	Vertex* getVertex(int idx) const { assert((idx == 0) || (idx == 1)); return _vertices[idx]; }
 
 	EdgeCycle* getEdgeCycle(int idx) const { assert((idx == 0) || (idx == 1)); return _edgeCycles[idx]; }
 
+	std::shared_ptr<Curve> getCurve() const { return _curve; }
+
+	//change edge 
+
 
 	//deprecated
-	Vertex* getEndPoint(int idx) const { return getVertex(idx); }
+	//use getVertex instead
+	[[deprecated]] Vertex* getEndPoint(int idx) const { return getVertex(idx); }
 
 private:
     friend class QuarterEdgeRef;
 
+	//function
+	// 
+	//set a vertex ( use with caution! this operation alone will render the model inconsistent! That's why it's a private function)
+	void setVertex(int vertexIdx, Vertex* vertex) {
+		assert((vertexIdx == 0) || (vertexIdx == 1));
+		_vertices[vertexIdx] = vertex;
+	}
+
+	//data
     std::shared_ptr<Curve> _curve; //if _curve is null, then the edge is a straight line
     Vertex* _vertices[2];
     EdgeCycle* _edgeCycles[2];
@@ -418,7 +436,44 @@ public:
 	//operations
 	//split edge at the given vertex in two edges
 	//the edge should be of this volume
-	//TODO// void SplitEdge(EdgeType* edge, VertexType* vertex);
+	template<typename... AdditionalCreateEdgeArgsTypes>
+	void splitEdge(EdgeType* edge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
+	{
+		EdgeType* newEdge =
+			this->createEdge(
+				vertex,
+				edge->getVertex(1),
+				edge->getCurve(),
+				additionalCreateEdgeArgs...
+			);
+
+		QuarterEdgeRef oldEndsOfEdge[2];
+		QuarterEdgeRef oldNeighborsAtEndOfEdge[2];
+
+		//get neighbors at end of edge
+		for (int cycleIdx = 0; cycleIdx < 2; cycleIdx++) {
+			oldEndsOfEdge[cycleIdx] = QuarterEdgeRef(edge, 1, cycleIdx);
+			oldNeighborsAtEndOfEdge[cycleIdx] = oldEndsOfEdge[cycleIdx].neighbor();
+		}
+
+		//connect new edge with those neighbors
+		for (int cycleIdx = 0; cycleIdx < 2; cycleIdx++) {
+			QuarterEdgeRef(newEdge, 1, cycleIdx).connectToNeighbor(
+				oldNeighborsAtEndOfEdge[cycleIdx]
+			);
+		}
+
+		//change end vertex of edge
+		edge->setVertex(1, vertex);
+
+		//connect edge and new edge as neighbors for both cycles
+		for (int cycleIdx = 0; cycleIdx < 2; cycleIdx++) {
+			QuarterEdgeRef(edge, 1, cycleIdx).connectToNeighbor(
+				QuarterEdgeRef(newEdge, 0, cycleIdx)
+			);
+		}
+	}
+
 private:
 
 	//TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
@@ -490,8 +545,8 @@ inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) co
 {
     assert( !this->isNull() );
     assert( !neighbor.isNull() );
-    assert( this->edgeCycle() == neighbor.edgeCycle() );
-	assert( this->endPoint() == neighbor.endPoint() );
+    assert(this->getEdgeCycle() == nullptr || neighbor.getEdgeCycle() == nullptr || this->getEdgeCycle() == neighbor.getEdgeCycle() );
+	assert( this->getVertex() == neighbor.getVertex() );
     QuarterEdgeRef* backLink = neighbor.neighborWritablePtr();
     if (! backLink->isNull() ) {
         backLink->disconnectFromNeighbor();
@@ -501,6 +556,18 @@ inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) co
 
     *forwardLink = neighbor;
     *backLink = *this;
+
+	EdgeCycle* thisEdgeCycle = this->getEdgeCycle();
+	EdgeCycle* neighborEdgeCycle = neighbor.getEdgeCycle();
+	if (thisEdgeCycle == nullptr) {
+		if (neighborEdgeCycle) {
+			this->_edge->_edgeCycles[_edgeCycleIdx] = neighborEdgeCycle;
+		}
+	} else if (neighborEdgeCycle == nullptr) {
+		if (thisEdgeCycle) {
+			neighbor._edge->_edgeCycles[_edgeCycleIdx] = thisEdgeCycle;
+		}
+	}
 }
 
 inline void QuarterEdgeRef::disconnectFromNeighbor() const
