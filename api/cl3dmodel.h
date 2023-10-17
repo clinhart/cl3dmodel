@@ -436,8 +436,10 @@ public:
 	//operations
 	//split edge at the given vertex in two edges
 	//the edge should be of this volume
+	//returns a pair of the two resuling edges: the first part has the same vertex at idx=0
+	//one of the parts may have the same pointer value as the given edge, but this is not guaranteed
 	template<typename... AdditionalCreateEdgeArgsTypes>
-	void splitEdge(EdgeType* edge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
+	std::pair<EdgeType*,EdgeType*> splitEdge(EdgeType* edge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
 	{
 		EdgeType* newEdge =
 			this->createEdge(
@@ -472,6 +474,9 @@ public:
 				QuarterEdgeRef(newEdge, 0, cycleIdx)
 			);
 		}
+
+		//return the two parts
+		return std::pair<EdgeType*, EdgeType*>(edge, newEdge);
 	}
 
 private:
