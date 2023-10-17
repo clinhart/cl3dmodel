@@ -38,6 +38,14 @@ struct ModelTypes
 	typedef TFacetType Facet;
 };
 
+template <typename TModelTypes>
+class Volume;
+
+class VolumeBase
+{
+public:
+	virtual ~VolumeBase() {}
+};
 
 class QuarterEdgeRef
 {
@@ -361,14 +369,25 @@ public:
 
 	const std::shared_ptr<Surface>& getSurface() const { return _surface; }
 
+	template<typename VolumeType> VolumeType* getVolume() const
+	{
+		return dynamic_cast<VolumeType*>(_volume);
+	}
+
+private:
+	template <typename TModelTypes> friend class Volume;
+
+	void setVolume(VolumeBase* volume) { _volume = volume; }
+
 private:
     std::list<EdgeCycle> _edgeCycles;
     std::shared_ptr<Surface> _surface;
+	VolumeBase* _volume;
 };
 
 
 template <typename TModelTypes = ModelTypes<> >
-class Volume
+class Volume : public VolumeBase
 {
 public:
 
@@ -400,7 +419,9 @@ public:
 	template<typename... ArgTypes>
 	FacetType* createFacet(ArgTypes... args)
 	{
-		return &_facets.emplace_back(args...);
+		FacetType* facet = &_facets.emplace_back(args...);
+		facet->setVolume(this);
+		return facet;
 	}
 
 	//iterate over content
