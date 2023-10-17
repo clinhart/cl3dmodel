@@ -112,6 +112,9 @@ public:
 
 	Edge* getEdge() const { return _edge; }
 
+	unsigned int getVertexIdx() const { return _vertexIdx; }
+	unsigned int getEdgeCycleIdx() const { return _edgeCycleIdx; }
+
 	//comparisons
 	bool operator==( const QuarterEdgeRef& other ) const
 	{
@@ -439,7 +442,7 @@ public:
 	//returns a pair of the two resuling edges: the first part has the same vertex at idx=0
 	//one of the parts may have the same pointer value as the given edge, but this is not guaranteed
 	template<typename... AdditionalCreateEdgeArgsTypes>
-	std::pair<EdgeType*,EdgeType*> splitEdge(EdgeType* edge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
+	std::pair<EdgeType*, EdgeType*> splitEdge(EdgeType* edge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
 	{
 		EdgeType* newEdge =
 			this->createEdge(
@@ -477,6 +480,26 @@ public:
 
 		//return the two parts
 		return std::pair<EdgeType*, EdgeType*>(edge, newEdge);
+	}
+
+	//same as above but work with QuarterEdgeRefs
+	//the first of the resulting pair has the same vertex as the gioven qEdge.
+	template<typename... AdditionalCreateEdgeArgsTypes>
+	std::pair<QuarterEdgeRef, QuarterEdgeRef> splitEdge(const QuarterEdgeRef& qEdge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
+	{
+		std::pair<EdgeType*, EdgeType*> splitEdgeResult =
+			splitEdge(qEdge.getEdge(), vertex, additionalCreateEdgeArgs...);
+		if (qEdge.getVertexIdx() == 0) {
+			return std::pair<QuarterEdgeRef, QuarterEdgeRef>(
+				QuarterEdgeRef(splitEdgeResult.first, 0, qEdge.getEdgeCycleIdx()),
+				QuarterEdgeRef(splitEdgeResult.second, 0, qEdge.getEdgeCycleIdx())
+			);
+		} else {
+			return std::pair<QuarterEdgeRef, QuarterEdgeRef>(
+				QuarterEdgeRef(splitEdgeResult.second, 1, qEdge.getEdgeCycleIdx()),
+				QuarterEdgeRef(splitEdgeResult.first, 1, qEdge.getEdgeCycleIdx())
+			);
+		}
 	}
 
 private:
