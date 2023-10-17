@@ -83,9 +83,14 @@ public:
 		*this = neighbor();
 	}
 
-	void moveToNeighborAtOtherEndPoint()
+	void moveToNeighborAtOtherEnd()
 	{
-		*this = neighborAtOtherEndPoint();
+		*this = neighborAtOtherEnd();
+	}
+
+	[[deprecated]] void moveToNeighborAtOtherEndPoint()
+	{
+		return moveToNeighborAtOtherEnd();
 	}
 
 	void moveToNeighborAtOtherSide()
@@ -94,7 +99,10 @@ public:
 	}
 
 	inline const QuarterEdgeRef& neighbor() const;
-	inline const QuarterEdgeRef& neighborAtOtherEndPoint() const;
+	inline const QuarterEdgeRef& neighborAtOtherEnd() const;
+	[[deprecated]] inline const QuarterEdgeRef& neighborAtOtherEndPoint() const {
+		return neighborAtOtherEnd();
+	}
 	inline const QuarterEdgeRef& neighborAtOtherSide() const;
 
 	QuarterEdgeRef otherEnd() const
@@ -282,7 +290,7 @@ public:
 			QuarterEdgeRef qedge = oneEdge;
 			do {
 				qedge.setEdgeCycle(this);
-				qedge.moveToNeighborAtOtherEndPoint();
+				qedge.moveToNeighborAtOtherEnd();
 			} while( qedge && ( qedge != oneEdge ) );
 		}
 	}
@@ -570,7 +578,7 @@ inline const QuarterEdgeRef& QuarterEdgeRef::neighbor() const
     return _edge->_neighbors[_vertexIdx][_edgeCycleIdx];
 }
 
-inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherEndPoint() const
+inline const QuarterEdgeRef& QuarterEdgeRef::neighborAtOtherEnd() const
 {
     return _edge->_neighbors[_vertexIdx ^ 1][_edgeCycleIdx];
 }
