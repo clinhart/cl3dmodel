@@ -260,6 +260,7 @@ public:
 
 private:
     friend class QuarterEdgeRef;
+	template <typename TModelTypes> friend class Volume;
 
 	//function
 	// 
@@ -514,10 +515,10 @@ public:
 	//same as above but work with QuarterEdgeRefs
 	//the first of the resulting pair has the same vertex as the gioven qEdge.
 	template<typename... AdditionalCreateEdgeArgsTypes>
-	std::pair<QuarterEdgeRef, QuarterEdgeRef> splitEdge(const QuarterEdgeRef& qEdge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
+	std::pair<QuarterEdgeRef, QuarterEdgeRef> splitQEdge(const QuarterEdgeRef& qEdge, VertexType* vertex, AdditionalCreateEdgeArgsTypes... additionalCreateEdgeArgs)
 	{
 		std::pair<EdgeType*, EdgeType*> splitEdgeResult =
-			splitEdge(qEdge.getEdge(), vertex, additionalCreateEdgeArgs...);
+			splitEdge(static_cast<EdgeType*>(qEdge.getEdge()), vertex, additionalCreateEdgeArgs...);
 		if (qEdge.getVertexIdx() == 0) {
 			return std::pair<QuarterEdgeRef, QuarterEdgeRef>(
 				QuarterEdgeRef(splitEdgeResult.first, 0, qEdge.getEdgeCycleIdx()),
