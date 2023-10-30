@@ -116,7 +116,7 @@ public:
 	}
 
 	//linking
-	inline void connectToNeighbor(const QuarterEdgeRef& neighbor) const;
+	inline void connectToNeighbor(QuarterEdgeRef neighbor) const;
 	inline void disconnectFromNeighbor() const;
 
 	//getters
@@ -235,9 +235,11 @@ public:
 		, _edgeCycles{ nullptr, nullptr }
 	{
 		for (int vertexIdx = 0; vertexIdx < 2; vertexIdx++) {
-			_vertices[vertexIdx]->indicateNewEdge(
-				QuarterEdgeRef(this, vertexIdx, 0)
-			);
+			if (_vertices[vertexIdx]) {
+				_vertices[vertexIdx]->indicateNewEdge(
+					QuarterEdgeRef(this, vertexIdx, 0)
+				);
+			}
 		}
 	}
 
@@ -252,7 +254,13 @@ public:
 	std::shared_ptr<Curve> getCurve() const { return _curve; }
 
 	//change edge 
-
+	//set a vertex. This is only allowed if the edge has no neighors at that vertex
+	void setVertex(int vertexIdx, Vertex* vertex) {
+		assert(_neighbors[vertexIdx][0].isNull());
+		assert(_neighbors[vertexIdx][1].isNull());
+		assert((vertexIdx == 0) || (vertexIdx == 1));
+		_vertices[vertexIdx] = vertex;
+	}
 
 	//deprecated
 	//use getVertex instead
@@ -265,7 +273,7 @@ private:
 	//function
 	// 
 	//set a vertex ( use with caution! this operation alone will render the model inconsistent! That's why it's a private function)
-	void setVertex(int vertexIdx, Vertex* vertex) {
+	void setVertexUnchecked(int vertexIdx, Vertex* vertex) {
 		assert((vertexIdx == 0) || (vertexIdx == 1));
 		_vertices[vertexIdx] = vertex;
 	}
@@ -499,7 +507,7 @@ public:
 		}
 
 		//change end vertex of edge
-		edge->setVertex(1, vertex);
+		edge->setVertexUnchecked(1, vertex);
 
 		//connect edge and new edge as neighbors for both cycles
 		for (int cycleIdx = 0; cycleIdx < 2; cycleIdx++) {
@@ -599,7 +607,7 @@ inline QuarterEdgeRef* QuarterEdgeRef::neighborWritablePtr() const
     return &(_edge->_neighbors[_vertexIdx][_edgeCycleIdx]);
 }
 
-inline void QuarterEdgeRef::connectToNeighbor(const QuarterEdgeRef& neighbor) const
+inline void QuarterEdgeRef::connectToNeighbor(QuarterEdgeRef neighbor) const
 {
     assert( !this->isNull() );
     assert( !neighbor.isNull() );
