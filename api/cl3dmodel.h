@@ -243,7 +243,7 @@ public:
 		}
 	}
 
-	operator bool() const { return _vertices[0] && _vertices[1]; }
+	operator bool() const { return ( _vertices[0] || _vertices[1] || _curve ); }
 	bool isNull() const { return !this->operator bool(); }
 
 	//idx == 0: start-point, idx == 1: end-point
