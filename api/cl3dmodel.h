@@ -619,6 +619,9 @@ inline void QuarterEdgeRef::connectToNeighbor(QuarterEdgeRef neighbor) const
     }
     assert( backLink->isNull() );
     QuarterEdgeRef* forwardLink = this->neighborWritablePtr();
+	if (!forwardLink->isNull()) {
+		forwardLink->disconnectFromNeighbor();
+	}
 
     *forwardLink = neighbor;
     *backLink = *this;
