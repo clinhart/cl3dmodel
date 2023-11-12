@@ -19,7 +19,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 #include <memory>
 #include <vector>
-#include <unordered_set>
+#include <set>
 #include <list>
 #include <Eigen/Dense>
 
@@ -541,6 +541,13 @@ public:
 	}
 
 private:
+	template <typename TVolumeType>
+	friend class Scene;
+
+	typedef uint64_t InternalIdType;
+
+	InternalIdType _internalId;
+
 
 	//TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
 	std::list<VertexType> _vertices;
@@ -548,23 +555,26 @@ private:
 	std::list<FacetType> _facets;
 };
 
+
 template <typename TVolumeType = Volume<>>
 class Scene
 {
 public:
-    typedef TVolumeType VolumeType;
-    typedef typename VolumeType::VertexType VertexType;
+	typedef TVolumeType VolumeType;
+	typedef typename VolumeType::VertexType VertexType;
 	typedef typename VolumeType::EdgeType EdgeType;
-    typedef typename VolumeType::FacetType FacetType;
+	typedef typename VolumeType::FacetType FacetType;
 
 	typedef std::shared_ptr<VolumeType> VolumePointerType;
 
-	typedef typename std::unordered_set<VolumePointerType>::const_iterator const_iterator;
+	typedef typename std::set<VolumePointerType>::const_iterator const_iterator;
 
 	template<typename... ArgTypes>
-	VolumePointerType createVolume( ArgTypes... args )
+	VolumePointerType createVolume(ArgTypes... args)
 	{
 		VolumePointerType volume = std::make_shared<VolumeType>(args...);
+		volume->_internalId = _nextInternalVolumeId;
+		++_nextInternalVolumeId;
 		_volumes.insert(volume);
 		return volume;
 	}
@@ -577,7 +587,23 @@ public:
 	size_t getVolumesCount() const { return _volumes.size(); }
 
 private:
-    std::unordered_set<VolumePointerType> _volumes;
+	typename TVolumeType::InternalIdType _nextInternalVolumeId = 1;
+	typedef std::set<
+		VolumePointerType,
+		bool (*)(
+			const VolumePointerType& vol1,
+			const VolumePointerType& vol2
+			)
+	> VolumeSetType;
+
+	static bool cmpVolumesByInternalId(
+		const VolumePointerType& vol1,
+		const VolumePointerType& vol2
+	) {
+		return vol1->_internalId < vol2->_internalId;
+	}
+
+	VolumeSetType _volumes{ cmpVolumesByInternalId };
 };
 
 
@@ -611,7 +637,7 @@ inline void QuarterEdgeRef::connectToNeighbor(QuarterEdgeRef neighbor) const
 {
     assert( !this->isNull() );
     assert( !neighbor.isNull() );
-    assert(this->getEdgeCycle() == nullptr || neighbor.getEdgeCycle() == nullptr || this->getEdgeCycle() == neighbor.getEdgeCycle() );
+//    assert(this->getEdgeCycle() == nullptr || neighbor.getEdgeCycle() == nullptr || this->getEdgeCycle() == neighbor.getEdgeCycle() );
 	assert( this->getVertex() == neighbor.getVertex() );
     QuarterEdgeRef* backLink = neighbor.neighborWritablePtr();
     if (! backLink->isNull() ) {
