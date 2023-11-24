@@ -218,6 +218,12 @@ public:
     virtual ~Curve() {}
 };
 
+#ifdef CL3DMODEL_CHECK_SAME_COORDS
+inline void SameCoords()
+{
+
+}
+#endif
 class Edge
 {
 public:
@@ -260,11 +266,22 @@ public:
 		assert(_neighbors[vertexIdx][1].isNull());
 		assert((vertexIdx == 0) || (vertexIdx == 1));
 		_vertices[vertexIdx] = vertex;
+#ifdef CL3DMODEL_CHECK_SAME_COORDS
+		checkSameCoords();
+#endif
 	}
 
 	//deprecated
 	//use getVertex instead
 	[[deprecated]] Vertex* getEndPoint(int idx) const { return getVertex(idx); }
+
+#ifdef CL3DMODEL_CHECK_SAME_COORDS
+	void checkSameCoords() {
+		if (_vertices[0] && _vertices[1] && (_vertices[0]->getCoords() - _vertices[1]->getCoords()).squaredNorm() < 0.0001) {
+			SameCoords();
+		}
+	}
+#endif
 
 private:
     friend class QuarterEdgeRef;
@@ -501,9 +518,11 @@ public:
 
 		//connect new edge with those neighbors
 		for (int cycleIdx = 0; cycleIdx < 2; cycleIdx++) {
-			QuarterEdgeRef(newEdge, 1, cycleIdx).connectToNeighbor(
-				oldNeighborsAtEndOfEdge[cycleIdx]
-			);
+			if (oldNeighborsAtEndOfEdge[cycleIdx]) {
+				QuarterEdgeRef(newEdge, 1, cycleIdx).connectToNeighbor(
+					oldNeighborsAtEndOfEdge[cycleIdx]
+				);
+			}
 		}
 
 		//change end vertex of edge
@@ -516,6 +535,10 @@ public:
 			);
 		}
 
+#ifdef CL3DMODEL_CHECK_SAME_COORDS
+		edge->checkSameCoords();
+		newEdge->checkSameCoords();
+#endif
 		//return the two parts
 		return std::pair<EdgeType*, EdgeType*>(edge, newEdge);
 	}
