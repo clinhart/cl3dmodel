@@ -149,6 +149,9 @@ public:
 	}
 
 	//operations
+	inline void setVertex(Vertex* vertex);
+
+	inline QuarterEdgeRef mergeWithNeighbor();
 
 	//deprecated
 	//use getVertex or getOtherVertex instead
@@ -331,6 +334,9 @@ public:
 		_oneEdge.moveToOtherEnd();
 	}
 
+private: friend class QuarterEdgeRef;
+
+	void setOneEdge(const QuarterEdgeRef& oneEdge) { _oneEdge = oneEdge; }
 private:
 	//one quarter-edge of the edge cycle. The others can be found through navigation to neighbor and otherEndpoint alternately
 	QuarterEdgeRef _oneEdge;
@@ -729,6 +735,53 @@ inline void QuarterEdgeRef::setEdgeCycle( EdgeCycle* edgeCycle )
 	_edge->_edgeCycles[_edgeCycleIdx] = edgeCycle;
 }
 
+inline void QuarterEdgeRef::setVertex(Vertex* vertex)
+{
+	_edge->setVertex(_vertexIdx, vertex);
+}
+
+
+inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor()
+{
+	assert(neighbor());
+	assert(neighbor().otherSide() == otherSide().neighbor());
+
+	QuarterEdgeRef myNeighbor = neighbor();
+	QuarterEdgeRef otherEndOfMyNeighbor = myNeighbor.otherEnd();
+	Vertex* vertexOnOtherEndOfMyNeighbor = otherEndOfMyNeighbor.getVertex();
+	QuarterEdgeRef nextNeighborOfMyNeighbor = otherEndOfMyNeighbor.neighbor();
+
+	QuarterEdgeRef myOtherSide = otherSide();
+	QuarterEdgeRef myNeighborOnOtherSide = myOtherSide.neighbor();
+	QuarterEdgeRef otherEndOfMyNeighborOnOtherSide = myNeighborOnOtherSide.otherEnd();
+	QuarterEdgeRef nextNeighborOfMyNeighborOnOtherSide = otherEndOfMyNeighborOnOtherSide.neighbor();
+
+	//edgecycle stuff
+	EdgeCycle* edgeCycleOfMyNeighbor = myNeighbor.getEdgeCycle();
+	if (edgeCycleOfMyNeighbor && edgeCycleOfMyNeighbor->getOneEdge() == myNeighbor) {
+		edgeCycleOfMyNeighbor->setOneEdge(*this);
+	}
+
+	EdgeCycle* edgeCycleOfMyNeighborOnOtherSide = myNeighborOnOtherSide.getEdgeCycle();
+	if (edgeCycleOfMyNeighborOnOtherSide && edgeCycleOfMyNeighborOnOtherSide->getOneEdge() == myNeighborOnOtherSide) {
+		edgeCycleOfMyNeighbor->setOneEdge(myOtherSide);
+	}
+
+	//disconnect edges
+	this->disconnectFromNeighbor();
+	myOtherSide.disconnectFromNeighbor();
+	otherEndOfMyNeighbor.disconnectFromNeighbor();
+	otherEndOfMyNeighborOnOtherSide.disconnectFromNeighbor();
+
+	//set vertex
+	setVertex(vertexOnOtherEndOfMyNeighbor);
+
+	//connect edges
+	this->connectToNeighbor(nextNeighborOfMyNeighbor);
+	myOtherSide.connectToNeighbor(nextNeighborOfMyNeighborOnOtherSide);
+
+	return *this;
+}
 
 } //end namespace CL3DModel
 
