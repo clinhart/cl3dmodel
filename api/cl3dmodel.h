@@ -151,7 +151,7 @@ public:
 	//operations
 	inline void setVertex(Vertex* vertex);
 
-	inline QuarterEdgeRef mergeWithNeighbor();
+	inline QuarterEdgeRef mergeWithNeighbor(const std::function<void(Edge*)>& edgeDeleter = [](Edge*) {});
 
 	//deprecated
 	//use getVertex or getOtherVertex instead
@@ -202,6 +202,20 @@ public:
 	{
 		if (_oneEdge.isNull()) {
 			_oneEdge = edge;
+		}
+	}
+
+	void indicateBeforeRemoveEdge(const QuarterEdgeRef& edge)
+	{
+		if (_oneEdge == edge || _oneEdge == edge.otherSide()) {
+			_oneEdge.moveToNeighbor();
+			if (_oneEdge) {
+				_oneEdge.moveToOtherSide();
+
+				if (_oneEdge == edge || _oneEdge == edge.otherSide()) {
+					_oneEdge = QuarterEdgeRef();
+				}
+			}
 		}
 	}
 
@@ -435,13 +449,21 @@ public:
 	typedef typename TModelTypes::Edge EdgeType;
 	typedef typename TModelTypes::Facet FacetType;
 
+	class StorageEdgeType : public EdgeType {
+		using EdgeType::EdgeType;
+
+		friend class Volume;
+
+	private:
+		typename std::list<StorageEdgeType>::iterator _iterator;
+	};
 
 	typedef typename std::list<VertexType>::iterator VertexIterator;
-	typedef typename std::list<EdgeType>::iterator EdgeIterator;
+	typedef typename std::list<StorageEdgeType>::iterator EdgeIterator;
 	typedef typename std::list<FacetType>::iterator FacetIterator;
 
 	typedef typename std::list<VertexType>::const_iterator ConstVertexIterator;
-	typedef typename std::list<EdgeType>::const_iterator ConstEdgeIterator;
+	typedef typename std::list<StorageEdgeType>::const_iterator ConstEdgeIterator;
 	typedef typename std::list<FacetType>::const_iterator ConstFacetIterator;
 
 	template<typename... ArgTypes>
@@ -453,7 +475,21 @@ public:
 	template<typename... ArgTypes>
 	EdgeType* createEdge(ArgTypes... args)
 	{
-		return &_edges.emplace_back(args...);
+		StorageEdgeType* edge = &_edges.emplace_back(args...);
+		edge->_iterator = std::prev(_edges.end());
+		return edge;
+	}
+
+	void deleteEdge(EdgeType* edge)
+	{
+		if (edge) {
+			StorageEdgeType* storageEdge = static_cast<StorageEdgeType*>(edge);
+			auto itEdge = storageEdge->_iterator;
+			if (itEdge != _edges.end()) {
+				storageEdge->_iterator = _edges.end();
+				_edges.erase(itEdge);
+			}
+		}
 	}
 
 	template<typename... ArgTypes>
@@ -569,6 +605,11 @@ public:
 		}
 	}
 
+
+	QuarterEdgeRef mergeWithNeighbor(QuarterEdgeRef qEdge)
+	{
+		return qEdge.mergeWithNeighbor([this](Edge* edge) { this->deleteEdge(static_cast<EdgeType*>(edge)); });
+	}
 private:
 	template <typename TVolumeType>
 	friend class Scene;
@@ -580,7 +621,7 @@ private:
 
 	//TODO use more efficient storage than std::list. Elements need to stay at the same storage address, so std::vector is not possible
 	std::list<VertexType> _vertices;
-	std::list<EdgeType> _edges;
+	std::list<StorageEdgeType> _edges;
 	std::list<FacetType> _facets;
 };
 
@@ -741,7 +782,7 @@ inline void QuarterEdgeRef::setVertex(Vertex* vertex)
 }
 
 
-inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor()
+inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor(const std::function<void(Edge*)>& edgeDeleter)
 {
 	assert(neighbor());
 	assert(neighbor().otherSide() == otherSide().neighbor());
@@ -756,6 +797,10 @@ inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor()
 	QuarterEdgeRef otherEndOfMyNeighborOnOtherSide = myNeighborOnOtherSide.otherEnd();
 	QuarterEdgeRef nextNeighborOfMyNeighborOnOtherSide = otherEndOfMyNeighborOnOtherSide.neighbor();
 
+	//indicate to the vertex that myNeighbor will be deleted -> this removes a potential pointer from the vertex to myNeighbor
+	Vertex* vertex = getVertex();
+	vertex->indicateBeforeRemoveEdge(myNeighbor);
+
 	//edgecycle stuff
 	EdgeCycle* edgeCycleOfMyNeighbor = myNeighbor.getEdgeCycle();
 	if (edgeCycleOfMyNeighbor && edgeCycleOfMyNeighbor->getOneEdge() == myNeighbor) {
@@ -767,11 +812,17 @@ inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor()
 		edgeCycleOfMyNeighbor->setOneEdge(myOtherSide);
 	}
 
+	myNeighbor.setEdgeCycle(nullptr);
+	myNeighborOnOtherSide.setEdgeCycle(nullptr);
+
 	//disconnect edges
 	this->disconnectFromNeighbor();
 	myOtherSide.disconnectFromNeighbor();
 	otherEndOfMyNeighbor.disconnectFromNeighbor();
 	otherEndOfMyNeighborOnOtherSide.disconnectFromNeighbor();
+
+	//delete the other edge
+	edgeDeleter(myNeighbor.edge());
 
 	//set vertex
 	setVertex(vertexOnOtherEndOfMyNeighbor);
