@@ -300,7 +300,16 @@ public:
 	}
 #endif
 
+	template<typename VolumeType> VolumeType* getVolume() const
+	{
+		return dynamic_cast<VolumeType*>(_volume);
+	}
+
 private:
+	template <typename TModelTypes> friend class Volume;
+
+	void setVolume(VolumeBase* volume) { _volume = volume; }
+
     friend class QuarterEdgeRef;
 	template <typename TModelTypes> friend class Volume;
 
@@ -318,6 +327,8 @@ private:
     EdgeCycle* _edgeCycles[2];
 
     QuarterEdgeRef _neighbors[2][2]; //neighbors[vertexIdx][edgeCycleIdx]
+
+	VolumeBase* _volume = nullptr;
 };
 
 class EdgeCycle
@@ -436,7 +447,7 @@ private:
 private:
     std::list<EdgeCycle> _edgeCycles;
     std::shared_ptr<Surface> _surface;
-	VolumeBase* _volume;
+	VolumeBase* _volume = nullptr;
 };
 
 
@@ -477,6 +488,7 @@ public:
 	{
 		StorageEdgeType* edge = &_edges.emplace_back(args...);
 		edge->_iterator = std::prev(_edges.end());
+		edge->setVolume(this);
 		return edge;
 	}
 
