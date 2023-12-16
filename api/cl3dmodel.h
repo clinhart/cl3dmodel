@@ -198,6 +198,8 @@ public:
 	const Eigen::Vector3d& getCoords() const { return _coords; }
 	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
 
+	void setCoords(const Eigen::Vector3d& coords) { _coords = coords; }
+
 	void indicateNewEdge( const QuarterEdgeRef& edge )
 	{
 		if (_oneEdge.isNull()) {
