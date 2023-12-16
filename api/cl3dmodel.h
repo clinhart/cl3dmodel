@@ -813,15 +813,26 @@ inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor(const std::function<void
 	Vertex* vertex = getVertex();
 	vertex->indicateBeforeRemoveEdge(myNeighbor);
 
-	//edgecycle stuff
+    Vertex* otherVertexOfNeighbor = myNeighbor.getOtherVertex();
+    otherVertexOfNeighbor->indicateBeforeRemoveEdge(otherEndOfMyNeighbor);
+
+	//edgecycle stuff ( preserving edge-cycle orientation ) ( TODO: put this in extra function )
 	EdgeCycle* edgeCycleOfMyNeighbor = myNeighbor.getEdgeCycle();
-	if (edgeCycleOfMyNeighbor && edgeCycleOfMyNeighbor->getOneEdge() == myNeighbor) {
-		edgeCycleOfMyNeighbor->setOneEdge(*this);
+	if ( edgeCycleOfMyNeighbor ) {
+        if ( edgeCycleOfMyNeighbor->getOneEdge() == myNeighbor ) {
+            edgeCycleOfMyNeighbor->setOneEdge(this->otherEnd());
+        } else if ( edgeCycleOfMyNeighbor->getOneEdge() == otherEndOfMyNeighbor ) {
+		    edgeCycleOfMyNeighbor->setOneEdge(*this);
+        }
 	}
 
 	EdgeCycle* edgeCycleOfMyNeighborOnOtherSide = myNeighborOnOtherSide.getEdgeCycle();
-	if (edgeCycleOfMyNeighborOnOtherSide && edgeCycleOfMyNeighborOnOtherSide->getOneEdge() == myNeighborOnOtherSide) {
-		edgeCycleOfMyNeighbor->setOneEdge(myOtherSide);
+	if (edgeCycleOfMyNeighborOnOtherSide) {
+        if ( edgeCycleOfMyNeighborOnOtherSide->getOneEdge() == myNeighborOnOtherSide ) {
+            edgeCycleOfMyNeighbor->setOneEdge(myOtherSide.otherEnd());
+        } else if ( edgeCycleOfMyNeighborOnOtherSide->getOneEdge() == otherEndOfMyNeighborOnOtherSide ) {
+            edgeCycleOfMyNeighbor->setOneEdge(myOtherSide);
+        }
 	}
 
 	myNeighbor.setEdgeCycle(nullptr);
