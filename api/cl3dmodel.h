@@ -847,7 +847,7 @@ inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor(const std::function<void
 	otherEndOfMyNeighborOnOtherSide.disconnectFromNeighbor();
 
 	//delete the other edge
-	edgeDeleter(myNeighbor.edge());
+	edgeDeleter(myNeighbor.getEdge());
 
 	//set vertex
 	setVertex(vertexOnOtherEndOfMyNeighbor);
