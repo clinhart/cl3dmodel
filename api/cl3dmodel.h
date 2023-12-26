@@ -30,6 +30,15 @@ class Edge;
 class Vertex;
 class Facet;
 
+#ifdef CL3DModel_OverrideScalarType
+typedef CL3DModel_OverrideScalarType ScalarType;
+#else
+typedef double ScalarType;
+#endif
+
+typedef Eigen::Matrix<ScalarType,3,1> ThreeDVectorType;
+
+
 template<typename TVertexType = Vertex, typename TEdgeType = Edge, typename TFacetType = Facet>
 struct ModelTypes
 {
@@ -185,20 +194,20 @@ public:
 		: _coords{ 0.0, 0.0, 0.0 }
 	{}
 
-	Vertex(const Eigen::Vector3d& coords)
+	Vertex(const ThreeDVectorType& coords)
 	: _coords(coords)
 	{}
 
-	Vertex(Eigen::Vector3d&& coords)
+	Vertex(ThreeDVectorType&& coords)
 		: _coords(std::move(coords))
 	{}
 
 	virtual ~Vertex() {}
 
-	const Eigen::Vector3d& getCoords() const { return _coords; }
+	const ThreeDVectorType& getCoords() const { return _coords; }
 	const QuarterEdgeRef& getOneEdge() const { return _oneEdge; }
 
-	void setCoords(const Eigen::Vector3d& coords) { _coords = coords; }
+	void setCoords(const ThreeDVectorType& coords) { _coords = coords; }
 
 	void indicateNewEdge( const QuarterEdgeRef& edge )
 	{
@@ -226,7 +235,7 @@ private:
     //The others can be found through navigation to neighbor and otherEndpoint alternately
     QuarterEdgeRef _oneEdge;
 
-    Eigen::Vector3d _coords;
+    ThreeDVectorType _coords;
 };
 
 //all curve objects are immutable, i.e. created by the constructor and then not changed
@@ -378,7 +387,7 @@ public:
     virtual ~Surface() {}
 
     //signed distance from surface. Sign is relevant for a true volume model: positive number is outside of volume, negative number is inside of volume
-    virtual double signedDistance( const Eigen::Vector3d& point ) = 0;
+    virtual ScalarType signedDistance( const ThreeDVectorType& point ) = 0;
 };
 
 class Plane : public Surface
@@ -386,24 +395,24 @@ class Plane : public Surface
 
 public:
     //so that the plane equation is p.dot(normalVector) + d == 0
-	Plane(const Eigen::Vector3d& normalVector, double d)
+	Plane(const ThreeDVectorType& normalVector, ScalarType d)
 		: _normalVector(normalVector)
 		, _d(d)
 	{
 	}
 
     //distance from plane in units of length of _normalVector, sign indicates which side of the plane
-    virtual double signedDistance( const Eigen::Vector3d& point )
+    virtual ScalarType signedDistance( const ThreeDVectorType& point )
     {
         return point.dot(_normalVector) + _d;
     }
 
-	const Eigen::Vector3d& getNormalVector() const { return _normalVector; }
-	double getD() const { return _d; }
+	const ThreeDVectorType& getNormalVector() const { return _normalVector; }
+	ScalarType getD() const { return _d; }
 
 private:
-    Eigen::Vector3d _normalVector; //for signedDistance to yield the actual distance, _normalVector has to have length 1
-    double _d;  // so that the plane equation is p.dot(_normalVector) + _d == 0
+    ThreeDVectorType _normalVector; //for signedDistance to yield the actual distance, _normalVector has to have length 1
+    ScalarType _d;  // so that the plane equation is p.dot(_normalVector) + _d == 0
 };
 
 class Facet
@@ -847,7 +856,7 @@ inline QuarterEdgeRef QuarterEdgeRef::mergeWithNeighbor(const std::function<void
 	otherEndOfMyNeighborOnOtherSide.disconnectFromNeighbor();
 
 	//delete the other edge
-	edgeDeleter(myNeighbor.getEdge());
+	//edgeDeleter(myNeighbor.getEdge());
 
 	//set vertex
 	setVertex(vertexOnOtherEndOfMyNeighbor);
